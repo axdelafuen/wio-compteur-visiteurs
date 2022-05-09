@@ -5,6 +5,7 @@
 RTC_SAMD51 rtc;
 TFT_eSPI tft;
 DateTime now = DateTime(F(__DATE__), F(__TIME__));
+DateTime tmp = DateTime(F(__DATE__), F(__TIME__));
 unsigned int visiteurs = 0;
 unsigned int affluence = 0;
 
@@ -58,23 +59,45 @@ void affichResults(){
 void dispTime(){
   tft.setTextColor(TFT_BLACK, TFT_BLUE);
   tft.setCursor(220,10);
-  if(now.minute()<10){
-    tft.print(String(now.hour(),DEC)+":0"+String(now.minute(),DEC));  
+  if(now.minute()<10 && now.hour()<10){
+    tft.print("0"+String(now.hour(),DEC)+":0"+String(now.minute(),DEC));  
+  }
+  else if(now.minute()<10){
+      tft.print(String(now.hour(),DEC)+":0"+String(now.minute(),DEC));  
+  }
+  else if(now.hour()<10){
+      tft.print("0"+String(now.hour(),DEC)+":"+String(now.minute(),DEC));  
   }
   else {
     tft.print(String(now.hour(),DEC)+":"+String(now.minute(),DEC));
   }
-  tft.setTextColor(TFT_BLACK, TFT_GREEN);
+  if(affluence<11){
+    tft.setTextColor(TFT_BLACK,TFT_GREEN);
+  }
+  else{
+    tft.setTextColor(TFT_BLACK,TFT_RED);
+  }
+  tmp=now;
 }
 
 void DispTimeSerial(){
-  Serial.println("Heure actuel : ");
+  Serial.println("-------------");
+  Serial.print("Heure actuelle : ");
   rtc.adjust(now);
-  Serial.print(now.hour(), DEC);
+  if(now.hour()<10){
+    Serial.print("0"+String(now.hour(), DEC));
+  }
+  else{
+    Serial.print(now.hour(), DEC);
+  }
   Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.println();
-  Serial.println("-------------\n");
+  if(now.minute()<10){
+    Serial.print("0"+String(now.minute(), DEC));
+  }
+  else{
+    Serial.println(now.minute(), DEC);
+  }
+  
 }
 
 //// STATS ////
@@ -127,37 +150,43 @@ void RemiseAZero(){
 }
 
 void envoyerLesStats(){
-  Serial.println('Stats');
+  Serial.println();
+  DispTimeSerial();
+  Serial.print("Visiteurs totales : ");
+  Serial.println(visiteurs,DEC);
+  Serial.print("Affluence actuelle : ");
+  Serial.println(affluence,DEC);
+  Serial.println("-------------");
 }
 
-//// SETUP ///
+//// SETUP ////
 
 void setup() {
-  tft.begin();
-  rtc.begin();
-  Serial.begin(115200);
+  tft.begin(); // lancer tft
+  rtc.begin(); // lancer rtc
+  Serial.begin(115200); // communiaction avec le moniteur de série en 115200 baud 
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // on ajuste rtc sur l'heure de compilation pour que le Wio soit autonome sur l'heure
+  needSerialCom(); // lance la fonction qui vérifie que le moniteur série est lancé
+  DispTimeSerial(); // affiche l'heure de début sur le moniteur de série
 
-  needSerialCom();
-
-  now = rtc.now();
-  DispTimeSerial();
-
-  pinMode(WIO_KEY_A, INPUT_PULLUP);
+  pinMode(WIO_KEY_A, INPUT_PULLUP); 
   pinMode(WIO_KEY_B, INPUT_PULLUP);
   pinMode(WIO_KEY_C, INPUT_PULLUP);
   pinMode(WIO_5S_PRESS, INPUT_PULLUP);
-  display(0);
+  display(0); // affichage de base
 }
 
 //// LOOP ////
 
 void loop() {
-  if(now!=rtc.now()){
-    now = rtc.now();
+ 
+  now=rtc.now(); // mise a jour de la variable now 
+  
+  if(tmp.minute()!=now.minute()||tmp.hour()!=now.hour()){ // vérif si le dernier horaire est dépasser
     dispTime();
-  }
-  if((now.minute()%15)==0){
-    envoyerLesStats();
+    if((now.minute()%15)==0){ // si le temps a changer on regarde si les minutes ne sont pas multiple de 15 pour envoyer les infos
+      envoyerLesStats();
+    }
   }
 
   if (digitalRead(WIO_KEY_C) == LOW){
@@ -169,5 +198,5 @@ void loop() {
   if (digitalRead(WIO_KEY_A) == LOW){
    RemiseAZero();
   }
-  
+  delay(200); 
 }
