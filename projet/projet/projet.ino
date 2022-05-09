@@ -25,9 +25,9 @@ void needSerialCom(){
 
 //// AFFICHAGE ////
 
-void display(int test){
-  if(test==0){tft.fillScreen(TFT_GREEN);} // fond vert
-  if(test==1){tft.fillScreen(TFT_RED);}
+void display(int displayType){
+  if(displayType==0 || displayType==3){tft.fillScreen(TFT_GREEN);} // fond vert
+  if(displayType==1 || displayType==4){tft.fillScreen(TFT_RED);}
   tft.fillRect(0,0,320,50,TFT_BLUE);
   tft.setTextSize(3);
   tft.setTextColor(TFT_BLACK,TFT_BLUE);
@@ -35,14 +35,15 @@ void display(int test){
   tft.drawString("-",80,10);
   tft.drawString("RAZ",150,10);
   dispTime();
-  if(test==0){tft.setTextColor(TFT_BLACK, TFT_GREEN);}
-  if(test==1){tft.setTextColor(TFT_BLACK, TFT_RED);}
+  if(displayType==0 || displayType==3){tft.setTextColor(TFT_BLACK, TFT_GREEN);}
+  if(displayType==1 || displayType==4){tft.setTextColor(TFT_BLACK, TFT_RED);}
   tft.drawString("Visiteurs :",10,70);
   tft.drawString("Affluence :",10,115);
   tft.setCursor(215,70);
   tft.print(visiteurs);
   tft.setCursor(215,115);
   tft.print(affluence);
+  if(displayType==3 || displayType==4){tft.drawString("Confirmez ?",110,200);}
 }
 
 void affichResults(){
@@ -102,22 +103,38 @@ void DispTimeSerial(){
 
 //// STATS ////
 
-void incrementation(){
+void incrementation(bool isRemiseAZero){
   visiteurs = visiteurs+1;
   affluence = affluence+1;
   if(affluence==11){
-    display(1);  
+    if(isRemiseAZero==false){\
+      display(1);
+      analogWrite(WIO_BUZZER, 128);
+      delay(1000);
+      analogWrite(WIO_BUZZER, 0);
+    }
+    else{
+      display(4);  
+      analogWrite(WIO_BUZZER, 128);
+      delay(1000);
+      analogWrite(WIO_BUZZER, 0);
+    }
   }
   affichResults();
   delay(200);    
 }
 
-void decrementation(){
+void decrementation(bool isRemiseAZero){
   if(dataVerif()){
       affluence = affluence-1; 
     }
     if(affluence==10){
-      display(0);  
+      if(isRemiseAZero==false){
+        display(0);
+      }
+      else{
+        display(3);  
+      }  
     }
     affichResults();
     delay(200); 
@@ -133,19 +150,29 @@ void RemiseAZero(){
   tft.drawString("Confirmez ?",110,200);
   while(i < 500){
     if (digitalRead(WIO_KEY_C) == LOW){
-      incrementation();
+      incrementation(true);
+      i+=20;
+      continue;
     }
     if (digitalRead(WIO_KEY_B) == LOW){
-      decrementation();
+      decrementation(true);
+      i+=20;
+      continue;
     }
     if(digitalRead(WIO_5S_PRESS) == LOW){
       visiteurs=0;
       affluence=0;
       display(0);
-      break;
+      return;
     }
     i+=10;
-    delay(10);
+    delay(100);
+  }
+  if(affluence  < 11){
+    tft.fillRect(110,200,200,50,TFT_GREEN);
+  }
+  else{
+     tft.fillRect(110,200,200,50,TFT_RED);
   }
 }
 
@@ -190,10 +217,10 @@ void loop() {
   }
 
   if (digitalRead(WIO_KEY_C) == LOW){
-    incrementation();
+    incrementation(false);
   }
   if (digitalRead(WIO_KEY_B) == LOW){
-    decrementation();
+    decrementation(false);
   }
   if (digitalRead(WIO_KEY_A) == LOW){
    RemiseAZero();
