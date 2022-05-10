@@ -8,6 +8,7 @@ DateTime now = DateTime(F(__DATE__), F(__TIME__));
 DateTime tmp = DateTime(F(__DATE__), F(__TIME__));
 unsigned int visiteurs = 0;
 unsigned int affluence = 0;
+unsigned int isSerial = 2;
 
 //// NEED SERIAL COM ////
 
@@ -101,6 +102,36 @@ void DispTimeSerial(){
   
 }
 
+void newMessage(){
+  if(affluence < 11){
+    tft.setTextColor(TFT_BLACK, TFT_GREEN);
+    tft.drawString("Nouveau message",10,160);  
+  }
+  else{
+    tft.setTextColor(TFT_BLACK, TFT_RED);
+    tft.drawString("Nouveau message",10,160);
+  }
+}
+
+void affichMessage(){
+  int i = 0;
+  tft.fillScreen(TFT_WHITE);
+  tft.setTextColor(TFT_BLACK, TFT_WHITE);
+  tft.drawString("Soon",0,0);
+  tft.drawString("Down pour sortir",10,200);
+
+  while(i<3000){
+    if (digitalRead(WIO_5S_DOWN) == LOW){
+      if(affluence < 11){display(0);}
+      else{display(1);}
+      isSerial=0;
+      return;  
+    }
+    i+=10;
+    delay(100); 
+  } 
+}
+
 //// STATS ////
 
 void incrementation(bool isRemiseAZero){
@@ -163,6 +194,9 @@ void RemiseAZero(){
       visiteurs=0;
       affluence=0;
       display(0);
+      Serial.println("-------------");
+      Serial.println("Remise des compteurs à zéro !");
+      isSerial=1;
       return;
     }
     i+=10;
@@ -200,12 +234,31 @@ void setup() {
   pinMode(WIO_KEY_B, INPUT_PULLUP);
   pinMode(WIO_KEY_C, INPUT_PULLUP);
   pinMode(WIO_5S_PRESS, INPUT_PULLUP);
+  pinMode(WIO_5S_UP, INPUT_PULLUP);
+  pinMode(WIO_5S_DOWN, INPUT_PULLUP);
+  pinMode(WIO_5S_UP, INPUT_PULLUP);
+  pinMode(WIO_5S_DOWN, INPUT_PULLUP);
   display(0); // affichage de base
 }
 
 //// LOOP ////
 
 void loop() {
+
+  if (isSerial != 2){
+    if (digitalRead(WIO_5S_UP) == LOW){
+      affichMessage();  
+    }  
+  }
+
+  if (isSerial == 0){
+    if (affluence < 11){
+      tft.fillRect(10,160,270,30,TFT_GREEN);  
+    }
+    else{
+      tft.fillRect(10,160,150,10,TFT_RED);  
+    }
+  }
  
   now=rtc.now(); // mise a jour de la variable now 
   
@@ -224,6 +277,10 @@ void loop() {
   }
   if (digitalRead(WIO_KEY_A) == LOW){
    RemiseAZero();
+  }
+
+  if (isSerial == 1){
+    newMessage();
   }
   delay(200); 
 }
