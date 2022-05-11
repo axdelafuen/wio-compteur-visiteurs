@@ -9,6 +9,7 @@ DateTime tmp = DateTime(F(__DATE__), F(__TIME__));
 unsigned int visiteurs = 0;
 unsigned int affluence = 0;
 unsigned int isSerial = 2;
+char tabChar[100];
 
 //// NEED SERIAL COM ////
 
@@ -111,13 +112,21 @@ void newMessage(){
     tft.setTextColor(TFT_BLACK, TFT_RED);
     tft.drawString("Nouveau message",10,160);
   }
+  analogWrite(WIO_BUZZER, 128);
+  delay(250);
+  analogWrite(WIO_BUZZER, 100);
+  delay(250);
+  analogWrite(WIO_BUZZER, 50);
+  delay(250);
+  analogWrite(WIO_BUZZER, 0);
+  isSerial = 3;
 }
 
-void affichMessage(){
+void affichMessage(char msg[]){
   int i = 0;
   tft.fillScreen(TFT_WHITE);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
-  tft.drawString("Soon",0,0);
+  tft.drawString(msg,0,0);
   tft.drawString("Down pour sortir",10,200);
 
   while(i<3000){
@@ -140,8 +149,8 @@ void incrementation(bool isRemiseAZero){
   if(affluence==11){
     if(isRemiseAZero==false){\
       display(1);
-      analogWrite(WIO_BUZZER, 128);
-      delay(1000);
+      analogWrite(WIO_BUZZER, 10);
+      delay(500);
       analogWrite(WIO_BUZZER, 0);
     }
     else{
@@ -196,7 +205,6 @@ void RemiseAZero(){
       display(0);
       Serial.println("-------------");
       Serial.println("Remise des compteurs à zéro !");
-      isSerial=1;
       return;
     }
     i+=10;
@@ -245,9 +253,26 @@ void setup() {
 
 void loop() {
 
+  int carDispo = Serial.available();
+  if(carDispo > 0){
+    int i = 0;
+    while(carDispo > 0)
+    {
+        char carlu = Serial.read();
+        tabChar[i] = carlu;
+        carDispo = Serial.available();
+        i = i + 1;
+        isSerial = 1;
+    }
+  }
+  
+  if (isSerial == 1){
+    newMessage();  
+  }
+
   if (isSerial != 2){
     if (digitalRead(WIO_5S_UP) == LOW){
-      affichMessage();  
+      affichMessage(tabChar);  
     }  
   }
 
@@ -278,9 +303,4 @@ void loop() {
   if (digitalRead(WIO_KEY_A) == LOW){
    RemiseAZero();
   }
-
-  if (isSerial == 1){
-    newMessage();
-  }
-  delay(200); 
 }
