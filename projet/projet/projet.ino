@@ -138,7 +138,10 @@ void affichMessage(char msg[]){
     }
     i+=10;
     delay(100); 
-  } 
+  }
+  if(affluence < 11){display(0);}
+  else{display(1);}
+  isSerial=0;
 }
 
 //// STATS ////
