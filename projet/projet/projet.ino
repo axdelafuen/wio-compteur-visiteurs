@@ -9,7 +9,7 @@ DateTime tmp = DateTime(F(__DATE__), F(__TIME__));
 unsigned int visiteurs = 0;
 unsigned int affluence = 0;
 unsigned int isSerial = 2;
-char tabChar[100];
+char* tabChar;
 
 //// NEED SERIAL COM ////
 
@@ -126,7 +126,8 @@ void affichMessage(char msg[]){
   int i = 0;
   tft.fillScreen(TFT_WHITE);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
-  tft.drawString(msg,0,0);
+  tft.setCursor(0,10);
+  tft.print(msg);
   tft.drawString("Down pour sortir",10,200);
 
   while(i<3000){
@@ -256,14 +257,15 @@ void setup() {
 
 void loop() {
 
-  int carDispo = Serial.available();
-  if(carDispo > 0){
+  int charDispo = Serial.available();
+  if(charDispo > 0){
     int i = 0;
-    while(carDispo > 0)
+    tabChar = new char[charDispo];
+    while(charDispo > 0)
     {
-        char carlu = Serial.read();
-        tabChar[i] = carlu;
-        carDispo = Serial.available();
+        char charlu = Serial.read();
+        tabChar[i] = charlu;
+        charDispo = Serial.available();
         i = i + 1;
         isSerial = 1;
     }
