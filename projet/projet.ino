@@ -193,75 +193,108 @@ void affichMessage(char msg[]){
 ///////////////
 
 /**
-  *\brief fonction 
+  *\brief fonction permettant d'ajouter 1 aux compteurs
+  *\ elle prend en parametre un booleen isRemiseAZero qui nous permettra de changer l'affichage
   */
 void incrementation(bool isRemiseAZero){
+  // augmente les valeurs de visiteurs et de affluence de 1 
   visiteurs = visiteurs+1;
   affluence = affluence+1;
+  // si l'affluence est egale a 11, il faut donc changer la couleur du fond en rouge
   if(affluence==11){
-    if(isRemiseAZero==false){\
+    // Si on avait avant de cliquer sur "+" cliquer sur "RAZ" alors, il faut laisser le message "Confirmez ?" afficher a l'ecran. C'est ce que la variable isRemiseAZero permet de faire
+    if(isRemiseAZero==false){ // Si isRemiseAZero est false alors on appelle la fonction display avec le parametre 1 qui n'affiche pas de texte supplemetaire
       display(1);
-      analogWrite(WIO_BUZZER, 128);
-      delay(500);
+      analogWrite(WIO_BUZZER, 128); // On actionne le buzzer pour indiquer que l'affluence max est depasse
+      delay(200);
       analogWrite(WIO_BUZZER, 0);
+      return; // On quitte la fonction car l'affichage a bien ete effectue
     }
+    // Si isRemiseAZero est true alors on appelle la fonction display avec le parametre 4 afin qu'il affiche "Confirmez ?" en bas de l'ecran
     else{
       display(4);  
       analogWrite(WIO_BUZZER, 128);
-      delay(1000);
+      delay(200);
       analogWrite(WIO_BUZZER, 0);
+      return;
     }
   }
+  // Si on est pas passe de 10 a 11 en affluence alors on appelle la fonction affichResults afin d'afficher les nouvelles valeur de visiteurs et d'affluence
   affichResults();
   delay(200);    
 }
 
+/**
+  *\brief fonction permettant d'enlever 1 au compteur
+  *\ elle prend en parametre un booleen isRemiseAZero qui nous permettra de changer l'affichage
+  */
 void decrementation(bool isRemiseAZero){
-  if(dataVerif()){
-      affluence = affluence-1; 
+  if(dataVerif()){ // on appelle la fonction dataVerif pour verifier que affluence ne descende pas en dessous de 0
+      affluence = affluence-1; // on enleve 1 a affluence 
     }
+    // Si l'affluence passe de 11 a 10 alors il faut changer la couleur de fond en vert
     if(affluence==10){
-      if(isRemiseAZero==false){
-        display(0);
+    // comme pour la fonction incrementation, on verifie si on a besoin d'ecrire le message de confirmation de la remise a 0 grace a la variable isRemiseAZero
+      if(isRemiseAZero==false){ 
+        display(0); // On appelle la fonction display avec different paremetre afin de gerer l'affichage
       }
       else{
         display(3);  
       }  
     }
+    // Si on est pas passe de 11 a 10 alors on appelle la fonction affichResults afin d'afficher la nouvelle valeur de affluence
     affichResults();
     delay(200); 
 }
 
+/**
+  *\brief fonction qui permet de verifier que la valeur de affluence ne descend pas en dessous de 0
+  *\Retourne un booleen en fonction de si oui ou non l'affluence est egal a 0
+  */
 bool dataVerif(){
   if(affluence == 0){return false;}
   return true;
 }
 
+/**
+  *\brief fonction qui permet de gerer la remise a zero des compteurs
+  */
 void RemiseAZero(){
   int i = 0;
-  tft.drawString("Confirmez ?",110,200);
+  tft.drawString("Confirmez ?",110,200); // quand on appelle la fonction on ecrit "Confirmez ?" en bas de l'ecran
+  // En attendant la confirmation de l'utilisateur on lance une boucle qui va durer 5 secondes pendant lesquels l'utilisateur aura plusieurs action possible
   while(i < 500){
+    // si il presse le bouton "+" alors, on appellera la fonction incrementation
     if (digitalRead(WIO_KEY_C) == LOW){
-      incrementation(true);
-      i+=20;
+      incrementation(true); // on appelle incrementation avec le parametre true afin de gerer l'affichage du texte "Confirmez ?"
+      // etant donne que dans la fonction incrementation on trouve un delay de 200ms, on ajoute 20 a i afin de compter le temps qui passe et on retourne directement au debut de la boucle
+      i+=20; 
       continue;
     }
+    // si il presse le bouton "-" alors, on appelle la fonction decrementation
     if (digitalRead(WIO_KEY_B) == LOW){
       decrementation(true);
+      // meme fonctionnement que pour le bouton "+"
       i+=20;
       continue;
     }
+    // si il presse le bouton du joystick alors il comfirme la remise a zero
     if(digitalRead(WIO_5S_PRESS) == LOW){
+      // on passe les valeurs de visiteurs et de affluence a 0
       visiteurs=0;
       affluence=0;
+      // on reaffiche l'ecran de base avec les nouvelles valeurs
       display(0);
+      // On ecrit dans le port serie un message pour notifier la remise a zero
       Serial.println("-------------");
       Serial.println("Remise des compteurs à zéro !");
-      return;
+      return; // si l'utilisateur a valider alors, on retourne a la loop
     }
+    // gestion de l'ecoulement du temps 
     i+=10;
     delay(100);
   }
+  // Si au bout des 5 secondes l'utilisatuer n'a pas confirmer la remise a 0 alors on recouvre le message avec un rectangle dont la couleur depend de la couleur du fond et donc de l'effluence
   if(affluence  < 11){
     tft.fillRect(110,200,200,50,TFT_GREEN);
   }
@@ -269,6 +302,7 @@ void RemiseAZero(){
      tft.fillRect(110,200,200,50,TFT_RED);
   }
 }
+
 /**
   *\brief permet d'envoyer les statistiques actuelles toutes les 15 minutes
   */
@@ -295,55 +329,56 @@ void setup() {
   needSerialCom(); // lance la fonction qui vérifie que le moniteur série est lancé
   DispTimeSerial(); // affiche l'heure de début sur le moniteur de série
 
-  pinMode(WIO_KEY_A, INPUT_PULLUP); 
-  pinMode(WIO_KEY_B, INPUT_PULLUP);
-  pinMode(WIO_KEY_C, INPUT_PULLUP);
-  pinMode(WIO_5S_PRESS, INPUT_PULLUP);
-  pinMode(WIO_5S_UP, INPUT_PULLUP);
-  pinMode(WIO_5S_DOWN, INPUT_PULLUP);
-  pinMode(WIO_5S_UP, INPUT_PULLUP);
-  pinMode(WIO_5S_DOWN, INPUT_PULLUP);
+  // On parametre les boutons qui nous seront necessaire
+  pinMode(WIO_KEY_A, INPUT_PULLUP); // bouton a du wio terminal en input
+  pinMode(WIO_KEY_B, INPUT_PULLUP); // bouton b du wio terminal en input 
+  pinMode(WIO_KEY_C, INPUT_PULLUP); // bouton c du wio terminal en input
+  pinMode(WIO_5S_PRESS, INPUT_PULLUP); // bouton lorsqu'on appui sur le joystick du wio terminal en input
+  pinMode(WIO_5S_UP, INPUT_PULLUP); // joystick vers le haut du wio terminal en input
+  pinMode(WIO_5S_DOWN, INPUT_PULLUP); // joystick vers le bas du wio terminal en input
   display(0); // affichage de base
 }
+
 //////////////
 //// LOOP ////
 //////////////
 
+/**
+  *\brief fonction de base qui attendra les actions de l'utilisateurs afin d'appeler les bonnes fonctions correspondantes
+  */
 void loop() {
 
+  // on regarde sur le port serie si un message est envoye par l'utilisateur. Si c'est le cas alors, on agrde sa taille dans la variable charDispo
   int charDispo = Serial.available();
+  // Si un message est lu
   if(charDispo > 0){
     int i = 0;
+    // on allour dynamiquement la place necessaire pour y inclure le message a un tableau de char
     tabChar = new char[charDispo];
+    // pour chaque lettre lu dans le message du port serie on la palce dans una case de notre tableau
     while(charDispo > 0)
     {
-        char charlu = Serial.read();
-        tabChar[i] = charlu;
+        char charlu = Serial.read(); // on place le premier caractere lu dans la variable charLu
+        tabChar[i] = charlu; // on place ce char dans la bonne case de notre tableau
         charDispo = Serial.available();
         i = i + 1;
-        isSerial = 1;
+        isSerial = 1; // on passe la valeur de isSerial a 1 afin d'afficher le nouveau message
     }
   }
   
+  // Si isSerial est egal a 1 alors, on appelle la fonction newMessage afin d'ecrire sur l'ecran qu'un nouveau message est arrive
   if (isSerial == 1){
     newMessage();  
   }
 
+  // Si isSerial est different de 2 (la valeur qu'on lui a attribue de base) alors, il est possible de lire le message
   if (isSerial != 2){
-    if (digitalRead(WIO_5S_UP) == LOW){
+    // si le joystick est pousse vers le haut, on appelle la fonction affichMessage avec en parametre notre texte dans un tableau afin de l'afficher
+    if (digitalRead(WIO_5S_UP) == LOW){  
       affichMessage(tabChar);  
     }  
   }
 
-  if (isSerial == 0){
-    if (affluence < 11){
-      tft.fillRect(10,160,270,30,TFT_GREEN);  
-    }
-    else{
-      tft.fillRect(10,160,150,10,TFT_RED);  
-    }
-  }
- 
   now=rtc.now(); // mise a jour de la variable now 
   
   if(tmp.minute()!=now.minute()||tmp.hour()!=now.hour()){ // vérifie si le dernier horaire est dépassé.
@@ -353,12 +388,15 @@ void loop() {
     }
   }
 
+  // Si l'utilisateur appui sur le bouton "+" alors, on appelle la fonction incrementation
   if (digitalRead(WIO_KEY_C) == LOW){
     incrementation(false);
   }
+  // Si l'utilisateur appui sur le bouton "-" alors, on appelle la fonction decrementation
   if (digitalRead(WIO_KEY_B) == LOW){
     decrementation(false);
   }
+  // Si l'utilisateur appui sur le bouton "RAZ" alors, on appelle la fonction RemisAZero
   if (digitalRead(WIO_KEY_A) == LOW){
    RemiseAZero();
   }
