@@ -1,7 +1,7 @@
-// ajour des librairies neécessaire 
-#include "TFT_eSPI.h" // librairie permettant l'affichage sur le wio terminal
-#include "RTC_SAMD51.h"
-#include "DateTime.h"
+// ajouts des bibliothèques nécessaires
+#include "TFT_eSPI.h" // bibliothèque permettant l'affichage sur le wio terminal
+#include "RTC_SAMD51.h" // bibliothèque permettant de récupérer l'heure de compilation du code en se basant sur l'heure de l'ordinateur
+#include "DateTime.h" // bibliothèque permattant d'avoir des variables 'chronomètres', ainsi que de les découper en heures / minutes / secondes
 
 //////////////////////////////////////////
 //// Declaration des variables global ////
@@ -21,13 +21,16 @@ char* tabChar; // Declaration de l'attribut tabChar qui est un tableau de caract
 //// NEED SERIAL COM ////
 /////////////////////////
 
+/**
+  *\brief affiche l'écran d'attente du moniteur de série. Cette fonction se termine seulement si le moniteur de s"rie est ouvert.
+  */
 void needSerialCom(){
-  tft.fillScreen(TFT_GREEN);
-  tft.setRotation(3);
-  tft.setTextSize (3);
-  tft.setTextColor (TFT_BLACK, TFT_GREEN);
-  tft.drawString("Need serial com",4,10);
-  while (!Serial)
+  tft.fillScreen(TFT_GREEN); // met le fond en vert
+  tft.setRotation(3); // fix le repère graphique
+  tft.setTextSize (3); // change la taille du texte en police 3
+  tft.setTextColor (TFT_BLACK, TFT_GREEN); // change la couleur du texte et de son arrière-plan
+  tft.drawString("Need serial com",4,10); // écrit le texte
+  while (!Serial) // attend qu'un moniteur de série soit ouvert.
   {
     ;
   }
@@ -75,10 +78,13 @@ void affichResults(){
   tft.print(affluence);
 }
 
-
+/**
+  *\brief fonction qui permet l'affichage de l'heure sur le Wio Terminal
+  */
 void dispTime(){
-  tft.setTextColor(TFT_BLACK, TFT_BLUE);
-  tft.setCursor(220,10);
+  tft.setTextColor(TFT_BLACK, TFT_BLUE); // change la couleur du texte et de son arrière plan 
+  tft.setCursor(220,10); // on ce positionne pour écrire au bon endroit
+  // Mise en place de conditions pour que l'affichage soit le bon 
   if(now.minute()<10 && now.hour()<10){
     tft.print("0"+String(now.hour(),DEC)+":0"+String(now.minute(),DEC));  
   }
@@ -91,8 +97,9 @@ void dispTime(){
   else {
     tft.print(String(now.hour(),DEC)+":"+String(now.minute(),DEC));
   }
+  // Mise en place de condition pour savoir de quelle couleur de fond du texte doit être remis
   if(affluence<11){
-    tft.setTextColor(TFT_BLACK,TFT_GREEN);
+    tft.setTextColor(TFT_BLACK,TFT_GREEN); 
   }
   else{
     tft.setTextColor(TFT_BLACK,TFT_RED);
@@ -100,10 +107,14 @@ void dispTime(){
   tmp=now;
 }
 
+/**
+  *\brief fonction qui permet d'afficher l'heure actuelle sur le moniteur de serie
+  */
 void DispTimeSerial(){
-  Serial.println("-------------");
+  Serial.println("-------------"); 
   Serial.print("Heure actuelle : ");
-  rtc.adjust(now);
+  rtc.adjust(now); // ajuste l'heure dans la variable rtc
+  // Mise en place de conditions pour que l'affichage soit le bon 
   if(now.hour()<10){
     Serial.print("0"+String(now.hour(), DEC));
   }
@@ -117,7 +128,6 @@ void DispTimeSerial(){
   else{
     Serial.println(now.minute(), DEC);
   }
-  
 }
 
 /**
@@ -259,24 +269,29 @@ void RemiseAZero(){
      tft.fillRect(110,200,200,50,TFT_RED);
   }
 }
-
+/**
+  *\brief permet d'envoyer les statistiques actuelles toutes les 15 minutes
+  */
 void envoyerLesStats(){
-  Serial.println();
-  DispTimeSerial();
+  Serial.println(); // saut de ligne
+  DispTimeSerial(); // apelle la fonction d'affichage de l'heure dans le moniteur de série
+  // affichage des statistiques dans le moniteur de série :
   Serial.print("Visiteurs totales : ");
   Serial.println(visiteurs,DEC);
   Serial.print("Affluence actuelle : ");
   Serial.println(affluence,DEC);
   Serial.println("-------------");
 }
-
+///////////////
 //// SETUP ////
+///////////////
 
 void setup() {
   tft.begin(); // lancer tft
   rtc.begin(); // lancer rtc
   Serial.begin(115200); // communiaction avec le moniteur de série en 115200 baud 
-  rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // on ajuste rtc sur l'heure de compilation pour que le Wio soit autonome sur l'heure
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // on ajuste rtc sur l'heure de compilation pour que le Wio soit autonome sur l'heure 
+                                                  //(lors de chaque 'reset' l'heure que contient 'rtc' sera donc remise à zéros sur l'heure de compilation).
   needSerialCom(); // lance la fonction qui vérifie que le moniteur série est lancé
   DispTimeSerial(); // affiche l'heure de début sur le moniteur de série
 
@@ -290,8 +305,9 @@ void setup() {
   pinMode(WIO_5S_DOWN, INPUT_PULLUP);
   display(0); // affichage de base
 }
-
+//////////////
 //// LOOP ////
+//////////////
 
 void loop() {
 
@@ -330,9 +346,9 @@ void loop() {
  
   now=rtc.now(); // mise a jour de la variable now 
   
-  if(tmp.minute()!=now.minute()||tmp.hour()!=now.hour()){ // vérif si le dernier horaire est dépasser
+  if(tmp.minute()!=now.minute()||tmp.hour()!=now.hour()){ // vérifie si le dernier horaire est dépassé.
     dispTime();
-    if((now.minute()%15)==0){ // si le temps a changer on regarde si les minutes ne sont pas multiple de 15 pour envoyer les infos
+    if((now.minute()%15)==0){ // si le temps a changé, on regarde si les minutes ne sont pas multiple de 15 pour envoyer les statistiques actuelles.
       envoyerLesStats();
     }
   }
