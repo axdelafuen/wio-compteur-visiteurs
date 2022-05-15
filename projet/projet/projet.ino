@@ -1,17 +1,25 @@
-#include "TFT_eSPI.h" 
+// ajour des librairies neécessaire 
+#include "TFT_eSPI.h" // librairie permettant l'affichage sur le wio terminal
 #include "RTC_SAMD51.h"
 #include "DateTime.h"
 
-RTC_SAMD51 rtc;
-TFT_eSPI tft;
+//////////////////////////////////////////
+//// Declaration des variables global ////
+//////////////////////////////////////////
+
+RTC_SAMD51 rtc; 
+TFT_eSPI tft; // Declaration du type tft qui permettra d'appeler les fonctions liees a la librairie
 DateTime now = DateTime(F(__DATE__), F(__TIME__));
 DateTime tmp = DateTime(F(__DATE__), F(__TIME__));
-unsigned int visiteurs = 0;
-unsigned int affluence = 0;
-unsigned int isSerial = 2;
-char* tabChar;
+unsigned int visiteurs = 0; // Declaration de de l'attribut visiteurs qui va permettre de connaitre le nombre de visiteurs dans le magasin
+unsigned int affluence = 0; // Declaration de l'attribut affluence qui va permettre de connaitre le nombre de visiteus dans le magasin en temps reel
+unsigned int isSerial = 2; // Declaration de l'attribut isSerial qui va permettre la lecture et l'affiche du message qu'on envoie depuis le port serie
+// On initialise isSerial a 2 au debut. Cela signifie qu'il est impossible d'ouvir l'ecran des messages pour le moment 
+char* tabChar; // Declaration de l'attribut tabChar qui est un tableau de caracteres qui nous permettra de stocker le message envoyer sur le port serie
 
+/////////////////////////
 //// NEED SERIAL COM ////
+/////////////////////////
 
 void needSerialCom(){
   tft.fillScreen(TFT_GREEN);
@@ -25,35 +33,44 @@ void needSerialCom(){
   }
 }
 
+///////////////////
 //// AFFICHAGE ////
+///////////////////
 
+/** 
+  *\brief Fonction qui permet l'affichage de l'ecran de base avec les fonds vert et bleu ainsi que les informartion comme l'effet du bouton le nombre de visiteurs, l'affluence et l'heure
+  *\ elle prend en parametre un int qui va definir certain changement comme la couleur du fond
+  */
 void display(int displayType){
-  if(displayType==0 || displayType==3){tft.fillScreen(TFT_GREEN);} // fond vert
-  if(displayType==1 || displayType==4){tft.fillScreen(TFT_RED);}
-  tft.fillRect(0,0,320,50,TFT_BLUE);
-  tft.setTextSize(3);
-  tft.setTextColor(TFT_BLACK,TFT_BLUE);
-  tft.drawString("+",10,10);
-  tft.drawString("-",80,10);
-  tft.drawString("RAZ",150,10);
-  dispTime();
-  if(displayType==0 || displayType==3){tft.setTextColor(TFT_BLACK, TFT_GREEN);}
-  if(displayType==1 || displayType==4){tft.setTextColor(TFT_BLACK, TFT_RED);}
-  tft.drawString("Visiteurs :",10,70);
-  tft.drawString("Affluence :",10,115);
-  tft.setCursor(215,70);
-  tft.print(visiteurs);
-  tft.setCursor(215,115);
+  if(displayType==0 || displayType==3){tft.fillScreen(TFT_GREEN);} // fond vert si displayType est egal a 0 ou 3
+  if(displayType==1 || displayType==4){tft.fillScreen(TFT_RED);} // fond rouge si displayType est egal a 1 ou 4
+  tft.fillRect(0,0,320,50,TFT_BLUE); // ajoute le rectangle bleu en haut de l'ecran
+  tft.setTextSize(3); // place la taille de la police a 3
+  tft.setTextColor(TFT_BLACK,TFT_BLUE); // place la couleur du text en noir et la couleur de fond du texte en bleu pour ecrire sur le rectangle bleu
+  tft.drawString("+",10,10);    // 
+  tft.drawString("-",80,10);    // qffiche les informations des fonctionnalites des differents boutons sous ceux ci 
+  tft.drawString("RAZ",150,10); //
+  dispTime(); // appelle la fonction qui permet l'affichage de l'heure
+  if(displayType==0 || displayType==3){tft.setTextColor(TFT_BLACK, TFT_GREEN);} // place la couleur du texte en noir et la couleur de fond de celui ci en vert pour ecrire sur le fond vert
+  if(displayType==1 || displayType==4){tft.setTextColor(TFT_BLACK, TFT_RED);} // place la couleur du texte en noir et la couleur de fond de celui ci en rouge pour ecrire sur le fond rouge 
+  tft.drawString("Visiteurs :",10,70);  // affiche les informations visiteurs et affluence sur l'ecran 
+  tft.drawString("Affluence :",10,115);  
+  tft.setCursor(215,70); // place un curseur a la suite de Visiteurs et y affiche la valeur de visiteur
+  tft.print(visiteurs);  
+  tft.setCursor(215,115); // place un curseur a la suite de Affluence et y affiche la valeur de affluence
   tft.print(affluence);
-  if(displayType==3 || displayType==4){tft.drawString("Confirmez ?",110,200);}
+  if(displayType==3 || displayType==4){tft.drawString("Confirmez ?",110,200);} // Si displayType est egale a 3 ou 4, alors affiche en bas de l'ecran le texte "Confirmez ?"
 }
 
+/**
+  *\brief Fonction qui met a jour les valeurs de Visireurs et Affluence a l'ecran
+  */
 void affichResults(){
-  tft.setCursor(215,70);
+  tft.setCursor(215,70); // place le curseur et ecrit la nouvelle valeur de Visiteurs 
   tft.print(visiteurs);
-  tft.setCursor(215,115);
+  tft.setCursor(215,115); // place le curseur et ecrit la nouvelle valeur de Affluence
   if(affluence==9){
-    tft.fillRect(233,110,20,30,TFT_GREEN);  
+    tft.fillRect(233,110,20,30,TFT_GREEN); // Si l'affluence passe en dessous de 10 alors on rajoute un rectangle vert afin d'enlever le 0 qui reste du 10 
   }
   tft.print(affluence);
 }
@@ -103,15 +120,23 @@ void DispTimeSerial(){
   
 }
 
+/**
+  *\brief affiche sur l'ecran que l'on a recu un nouveau message si on en a recu un
+  */
 void newMessage(){
-  if(affluence < 11){
-    tft.setTextColor(TFT_BLACK, TFT_GREEN);
+  if(affluence < 11){ 
+    // si l'affluence est en dessous de 11 alors on passe la couleur de fond du texte en vert pour s'accorder a la couleur du fond de l'ecran et on ecrit "Nouveau message en bas de l'ecran"
+    tft.setTextColor(TFT_BLACK, TFT_GREEN);     
     tft.drawString("Nouveau message",10,160);  
   }
   else{
-    tft.setTextColor(TFT_BLACK, TFT_RED);
+    // si l'affluence est en dessous de 11 alors on passe la couleur de fond du texte en rouge pour s'accorder a la couleur du fond de l'ecran et on ecrit "Nouveau message en bas de l'ecran"
+    tft.setTextColor(TFT_BLACK, TFT_RED);     
     tft.drawString("Nouveau message",10,160);
-  }
+  } 
+  
+  // On joue une petie melodie quand on recoi le message
+
   analogWrite(WIO_BUZZER, 128);
   delay(250);
   analogWrite(WIO_BUZZER, 100);
@@ -119,41 +144,54 @@ void newMessage(){
   analogWrite(WIO_BUZZER, 50);
   delay(250);
   analogWrite(WIO_BUZZER, 0);
-  isSerial = 3;
+  isSerial = 3; // on passe la valeur de isSerial a 3 avant de revenir dans la loop pour permettre la lecture du message
 }
 
+/**
+  *\brief fonction qui permet d'afficher le message a l'ecran et qui donne les instructions pour en sortir
+  *\ cette fonction prend en parametre un tableau de charactere correspondant au message que l'on souhaite afficher
+  */
 void affichMessage(char msg[]){
-  int i = 0;
+  int i = 0; // initialise la variable i qui est un entier initialise a la valeur 0
+  // On passe la couleur du fond en blanc ainsi que la couleur de fond du texte
   tft.fillScreen(TFT_WHITE);
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
-  tft.setCursor(0,10);
+  tft.setCursor(0,10); // on place un curseur en haut a gauche de l'ecran et on y ecrit notre message avec la fonction print qui permet de faire des retours a la ligne automatique si on arrive au bout de l'ecran
   tft.print(msg);
-  tft.drawString("Down pour sortir",10,200);
+  tft.drawString("Down pour sortir",10,200); // On ecrit en bas de l'ecran l'instruction pour sortir 
 
+  // on lance une boucle qui va durer 30 secondes et qui va permettre a l'utilisateur de quitter par lui meme l'ecran de message
   while(i<3000){
-    if (digitalRead(WIO_5S_DOWN) == LOW){
-      if(affluence < 11){display(0);}
-      else{display(1);}
-      isSerial=0;
-      return;  
+    // si pendant ces 30 secondes l'utilisateur apui sur joystick vers le bas alors on rappelle la fonction display afin de reafficher l'ecran de base et donc de quitter celui des messages
+    if (digitalRead(WIO_5S_DOWN) == LOW){ 
+      if(affluence < 11){display(0);} // Si l'affluence est inferieur a 11 alors, on rappelle la fonction avec le parametre 0 avec quelle mette le fond en vert
+      else{display(1);} // Si l'affluence est superieur a 11 alors, on rappelle la fonction avec le parametre 1 avec quelle mette le fond en rouge 
+      isSerial=0; // on met la variable isSerial a 0 avant de quitter l'ecran. Cela signifie qu'on pourra rouvrir l'ecran des message afin de le reafficher
+      return; // on quitte la fonction car on a plus besoin du chronometre 
     }
-    i+=10;
+    i+=10;      // gestion du delai qui dure 30 secondes et qui permet a l'utilisateur de faire des actions pendant celles ci
     delay(100); 
   }
+  // Si au bout des 30 secondes l'utilisateur n'a rien fait alors on affiche l'ecran de base avec la fonction display et on quitte le fonction.
   if(affluence < 11){display(0);}
   else{display(1);}
   isSerial=0;
 }
 
+///////////////
 //// STATS ////
+///////////////
 
+/**
+  *\brief fonction 
+  */
 void incrementation(bool isRemiseAZero){
   visiteurs = visiteurs+1;
   affluence = affluence+1;
   if(affluence==11){
     if(isRemiseAZero==false){\
       display(1);
-      analogWrite(WIO_BUZZER, 10);
+      analogWrite(WIO_BUZZER, 128);
       delay(500);
       analogWrite(WIO_BUZZER, 0);
     }
