@@ -1,3 +1,8 @@
+/**
+  *\ Author : DE LA FUENTE Axel : 40%, ASTOLFI Vincent : 60%
+*/
+
+
 // ajouts des bibliothèques nécessaires
 #include "TFT_eSPI.h" // bibliothèque permettant l'affichage sur le wio terminal
 #include "RTC_SAMD51.h" // bibliothèque permettant de récupérer l'heure de compilation du code en se basant sur l'heure de l'ordinateur
@@ -44,7 +49,7 @@ void needSerialCom(){
   *\brief Fonction qui permet l'affichage de l'écran de base avec les fonds vert et bleu ainsi que les informartions comme l'effet des boutons, le nombre de visiteurs, l'affluence et l'heure
   *\ elle prend en paramètre un int qui va definir certain changement comme la couleur du fond
   */
-void display(int displayType){
+void affichagePrincipale(int displayType){
   if(displayType==0 || displayType==3){tft.fillScreen(TFT_GREEN);} // fond vert si displayType est egal à 0 ou 3
   if(displayType==1 || displayType==4){tft.fillScreen(TFT_RED);} // fond rouge si displayType est egal à 1 ou 4
   tft.fillRect(0,0,320,50,TFT_BLUE); // ajoute le rectangle bleu en haut de l'écran
@@ -116,17 +121,17 @@ void DispTimeSerial(){
   rtc.adjust(now); // ajuste l'heure dans la variable rtc
   // Mise en place de conditions pour que l'affichage soit le bon 
   if(now.hour()<10){
-    Serial.print("0"+String(now.hour(), DEC));
+    Serial.print("0"+String(now.hour()));
   }
   else{
-    Serial.print(now.hour(), DEC);
+    Serial.print(now.hour());
   }
   Serial.print(':');
   if(now.minute()<10){
-    Serial.print("0"+String(now.minute(), DEC));
+    Serial.print("0"+String(now.minute())+"\n");
   }
   else{
-    Serial.println(now.minute(), DEC);
+    Serial.print(String(now.minute())+"\n");
   }
 }
 
@@ -168,14 +173,14 @@ void affichMessage(char msg[]){
   tft.setTextColor(TFT_BLACK, TFT_WHITE);
   tft.setCursor(0,10); // on place un curseur en haut à gauche de l'écran et on y ecrit notre message avec la fonction print qui permet de faire des retours a la ligne automatique si on arrive au bout de l'écran
   tft.print(msg);
-  tft.drawString("Down pour sortir",10,200); // On ecrit en bas de l'écran l'instruction pour sortir 
+  tft.drawString("DOWN pour sortir",10,200); // On ecrit en bas de l'écran l'instruction pour sortir 
 
   // on lance une boucle qui va durer 30 secondes et qui va permettre à l'utilisateur de quitter par lui même l'écran de message
   while(i<3000){
     // si pendant ces 30 secondes l'utilisateur apui sur joystick vers le bas alors on rappelle la fonction display afin de réafficher l'écran de base et donc de quitter celui des messages
     if (digitalRead(WIO_5S_DOWN) == LOW){ 
-      if(affluence < 11){display(0);} // Si l'affluence est inferieur à 11 alors, on rappelle la fonction avec le paramètre 0 avec quelle mette le fond en vert
-      else{display(1);} // Si l'affluence est superieur à 11 alors, on rappelle la fonction avec le paramètre 1 avec quelle mette le fond en rouge 
+      if(affluence < 11){affichagePrincipale(0);} // Si l'affluence est inferieur à 11 alors, on rappelle la fonction avec le paramètre 0 avec quelle mette le fond en vert
+      else{affichagePrincipale(1);} // Si l'affluence est superieur à 11 alors, on rappelle la fonction avec le paramètre 1 avec quelle mette le fond en rouge 
       isSerial=0; // on met la variable isSerial à 0 avant de quitter l'écran. Cela signifie qu'on pourra rouvrir l'écran des message afin de le réafficher
       return; // on quitte la fonction car on a plus besoin du chronometre 
     }
@@ -183,8 +188,8 @@ void affichMessage(char msg[]){
     delay(100); 
   }
   // Si au bout des 30 secondes l'utilisateur n'a rien fait alors on affiche l'écran de base avec la fonction display et on quitte le fonction.
-  if(affluence < 11){display(0);}
-  else{display(1);}
+  if(affluence < 11){affichagePrincipale(0);}
+  else{affichagePrincipale(1);}
   isSerial=0;
 }
 
@@ -204,7 +209,7 @@ void incrementation(bool isRemiseAZero){
   if(affluence==11){
     // Si on avait, avant de cliqué sur "+", cliqué sur "RAZ" alors, il faut laisser le message "Confirmez ?" afficher à l'écran. C'est ce que la variable isRemiseAZero permet de faire
     if(isRemiseAZero==false){ // Si isRemiseAZero est false alors on appelle la fonction display avec le paramètre 1 qui n'affiche pas de texte supplemetaire
-      display(1);
+      affichagePrincipale(1);
       analogWrite(WIO_BUZZER, 128); // On actionne le buzzer pour indiquer que l'affluence max est depasse
       delay(200);
       analogWrite(WIO_BUZZER, 0);
@@ -212,7 +217,7 @@ void incrementation(bool isRemiseAZero){
     }
     // Si isRemiseAZero est true alors on appelle la fonction display avec le paramètre 4 afin qu'il affiche "Confirmez ?" en bas de l'écran
     else{
-      display(4);  
+      affichagePrincipale(4);  
       analogWrite(WIO_BUZZER, 128);
       delay(200);
       analogWrite(WIO_BUZZER, 0);
@@ -236,10 +241,10 @@ void decrementation(bool isRemiseAZero){
     if(affluence==10){
     // comme pour la fonction incrementation, on verifie si on a besoin d'écrire le message de confirmation de la remise à 0 grace à la variable isRemiseAZero
       if(isRemiseAZero==false){ 
-        display(0); // On appelle la fonction display avec different paramètres afin de gerer l'affichage
+        affichagePrincipale(0); // On appelle la fonction display avec different paramètres afin de gerer l'affichage
       }
       else{
-        display(3);  
+        affichagePrincipale(3);  
       }  
     }
     // Si on n'est pas passé de 11 à 10 alors on appelle la fonction affichResults afin d'afficher la nouvelle valeur de affluence
@@ -284,10 +289,11 @@ void RemiseAZero(){
       visiteurs=0;
       affluence=0;
       // on réaffiche l'écran de base avec les nouvelles valeurs
-      display(0);
-      // On ecrit dans le port serie un message pour notifier la remise a zero
+      affichagePrincipale(0);
+      // On ecrit dans le port serie un message pour notifier la remise a zero ainsi que les valeurs de visiteurs et affluence
       Serial.println("-------------");
-      Serial.println("Remise des compteurs à zéro !");
+      Serial.print("Remise des compteurs à zéro !");
+      envoyerLesStats();
       return; // si l'utilisateur a validé alors, on retourne à la loop
     }
     // gestion de l'ecoulement du temps 
@@ -336,7 +342,7 @@ void setup() {
   pinMode(WIO_5S_PRESS, INPUT_PULLUP); // bouton lorsqu'on appui sur le joystick du wio terminal en input
   pinMode(WIO_5S_UP, INPUT_PULLUP); // joystick vers le haut du wio terminal en input
   pinMode(WIO_5S_DOWN, INPUT_PULLUP); // joystick vers le bas du wio terminal en input
-  display(0); // affichage de base
+  affichagePrincipale(0); // affichage de base
 }
 
 //////////////
@@ -353,12 +359,14 @@ void loop() {
   // Si un message est lu
   if(charDispo > 0){
     int i = 0;
+    delete[] tabChar; // On mibère l'espace alloué au tableau pour éviter les fuites de mémoires
     // on allou dynamiquement la place necessaire pour y inclure le message à un tableau de char
     tabChar = new char[charDispo];
     // pour chaque lettre lu dans le message du port serie on la place dans une case de notre tableau
     while(charDispo > 0)
     {
         char charlu = Serial.read(); // on place le premier charactère lu dans la variable charLu
+        Serial.print(charlu);
         tabChar[i] = charlu; // on place ce char dans la bonne case de notre tableau
         charDispo = Serial.available();
         i = i + 1;
